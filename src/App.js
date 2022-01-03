@@ -1,25 +1,129 @@
-import React from "react";
-import Login from "./components/Login";
+import React, { useState, useEffect } from "react";
+import {
+      BrowserRouter as Router,
+      Routes,
+      Route,
+      useNavigate,
+} from "react-router-dom";
+import { app } from "./firebase";
+import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+} from "firebase/auth";
+import Form from "./components/common/Form";
+import Home from "./components/Home";
+import "./App.css";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-
-import Register from "./components/Register";
-import Reset from "./components/Reset";
-import Dashboard from "./components/Dashboard";
 function App() {
+      const [email, setEmail] = useState("");
+      const [password, setPassword] = useState("");
+
+      useEffect(() => {
+            let authToken = sessionStorage.getItem("Auth Token");
+
+            if (authToken) {
+                  navigate("/home");
+            }
+      }, []);
+      const googleSignIn = () => {
+            let google_provider = new app.getAuth.GoogleAuthProvider();
+            app.getAuth()
+                  .signInWithPopup(google_provider)
+                  .then((res) => {
+                        console.log(res);
+                  });
+      };
+
+      let navigate = useNavigate();
+      const handleAction = (id) => {
+            const authentication = getAuth();
+            try {
+                  if (id === 2) {
+                        createUserWithEmailAndPassword(
+                              authentication,
+                              email,
+                              password
+                        ).then((response) => {
+                              navigate("/home");
+                              sessionStorage.setItem(
+                                    "Auth Token",
+                                    response._tokenResponse.refreshToken
+                              );
+                              console.log("session data:");
+                        });
+                  }
+                  if (id === 1) {
+                        signInWithEmailAndPassword(
+                              authentication,
+                              email,
+                              password
+                        ).then((response) => {
+                              navigate("/home");
+                              sessionStorage.setItem(
+                                    "Auth Token",
+                                    response._tokenResponse.refreshToken
+                              );
+                        });
+                  }
+            } catch (error) {
+                  if (error.code === "auth/wrong-password") {
+                        toast("Please check the Password", {
+                              position: "top-right",
+                              autoClose: 5000,
+                        });
+                  }
+                  if (error.code === "auth/user-not-found") {
+                        toast("Please check the Email", {
+                              position: "top-right",
+                              autoClose: 5000,
+                        });
+                  }
+                  if (error.code === "auth/email-already-in-use") {
+                        toast("Email Already in Use", {
+                              position: "top-right",
+                              autoClose: 5000,
+                        });
+                  }
+            }
+      };
+
       return (
-            <div>
-                  <Router>
+            <div className='App'>
+                  <>
                         <Routes>
-                              <Route path='/' element={<Login />} />
-                              <Route path='/register' element={<Register />} />
-                              <Route path='/reset' element={<Reset />} />
+                              <Route path='/home' element={<Home />} />
                               <Route
-                                    path='/dashboard'
-                                    element={<Dashboard />}
+                                    path='/login'
+                                    element={
+                                          <Form
+                                                title='Login'
+                                                setEmail={setEmail}
+                                                setPassword={setPassword}
+                                                handleAction={() =>
+                                                      handleAction(1)
+                                                }
+                                          />
+                                    }
+                              />
+                              <Route
+                                    path='/register'
+                                    element={
+                                          <Form
+                                                setEmail={setEmail}
+                                                setPassword={setPassword}
+                                                handleAction={() =>
+                                                      handleAction(2)
+                                                }
+                                                title='Register'
+                                          />
+                                    }
                               />
                         </Routes>
-                  </Router>
+                  </>
+                  <ToastContainer position='top-right' autoClose={5000} />
             </div>
       );
 }
